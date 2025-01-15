@@ -54,7 +54,7 @@ $form.CancelButton = $cancelButton
 # Main information text
 $label = New-Object System.Windows.Forms.Label
 $label.Location = New-Object System.Drawing.Point(20,20)
-$label.Size = New-Object System.Drawing.Size(400,20)
+$label.Size = New-Object System.Drawing.Size(230,20)
 $label.Text = 'What is the current store number?'
 
 # Information progress label
@@ -67,16 +67,30 @@ $warn.Visible = $FALSE
 
 # Store number user input
 $textBox = New-Object System.Windows.Forms.TextBox
-$textBox.Location = New-Object System.Drawing.Point(175,40)
+$textBox.Location = New-Object System.Drawing.Point(335,15)
 $textbox.Width = 100
 $textBox.TextAlign = 'center'
 $textBox.AcceptsReturn = $true
 
+# Location of Data
+$textBoxSource = New-Object System.Windows.Forms.TextBox
+$textBoxSource.Location = New-Object System.Drawing.Point(161,70)
+$textboxSource.Width = 275
+$textBoxSource.TextAlign = 'center'
+$textBoxSource.AcceptsReturn = $true
+$textBoxSource.text = $sourcePath
+
+# label Source
+$datasource = New-Object System.Windows.Forms.Label
+$datasource.Location = New-Object System.Drawing.Point(20, 72)
+$datasource.Width = 130
+$datasource.Text = 'Data Source Path:'
+
 # Checkbox for UAT Data Load
 $objTypeCheckboxUATload = New-Object System.Windows.Forms.Checkbox 
-$objTypeCheckboxUATload.Location = New-Object System.Drawing.Size(20,70) 
-$objTypeCheckboxUATload.Size = New-Object System.Drawing.Size(210,20)
-$objTypeCheckboxUATload.Text = "UAT Data Load?"
+$objTypeCheckboxUATload.Location = New-Object System.Drawing.Size(335,45) 
+$objTypeCheckboxUATload.Size = New-Object System.Drawing.Size(200,20)
+$objTypeCheckboxUATload.Text = "UAT Store?"
 $objTypeCheckboxUATload.TabIndex = 5
 
 # Add all controls to main form.
@@ -84,8 +98,10 @@ $form.Controls.Add($warn)
 $form.Controls.Add($objTypeCheckboxUATload)
 $form.Controls.Add($LDButton)
 $form.Controls.Add($label)
+$form.Controls.Add($datasource)
 $form.Controls.Add($cancelButton)
 $form.Controls.Add($textBox)
+$form.Controls.Add($textBoxSource)
 
 # Make sure the form is top of z-index
 $form.Topmost = $true
@@ -252,6 +268,7 @@ Function Invoke-UIProcess {
         [System.Windows.MessageBox]::Show('Error, C:\xstore\download does not exist.','Error')
     }else{
 
+        $sourcePath = $textBoxSource.Text
         $StoreNumber = $textBox.Text
         $StoreNumber = $StoreNumber.Trim()
 
