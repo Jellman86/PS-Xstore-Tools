@@ -143,7 +143,7 @@ Function Get-LatestStoreData {
         }else{
             $warn.ForeColor = 'red'
             $warn.Text = "Data Source does not exist."
-            Write-log "$sourcePath\setup does not exist."
+            Write-log "ERROR - $sourcePath\setup does not exist."
         }
             
             #is this a UAT Machine? if so copy over the UAT Data.
@@ -154,7 +154,9 @@ Function Get-LatestStoreData {
                     Copy-Item -Path $mnt.FullName -Destination "$env:TMP\source-mnt";
                 }
             }else{
-                
+                $warn.ForeColor = 'red'
+                $warn.Text = "UAT Data Source does not exist."
+                Write-log "ERROR - $sourcePath\UAT does not exist."   
             }
 }
 
@@ -266,7 +268,8 @@ Function Invoke-DataLoad {
 
 # OnClick button process.
 Function Invoke-UIProcess {
-    $testing = $true
+    $testing = $false
+    
     if($null -eq $textBox.Text -or $textbox.Text -eq ""){
         [System.Windows.MessageBox]::Show('Error, Store Number is Empty.','Error')
     }elseif($textBox.Text -notmatch '^\d+$'){
