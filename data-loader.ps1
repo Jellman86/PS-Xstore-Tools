@@ -132,21 +132,30 @@ Function Get-LatestStoreData {
             $warn.Text = "Creating new source-mnt Folder."
             New-Item -ItemType Directory -Path $env:TMP -Name 'source-mnt' -Force
 
+        if(Test-Path -Path "$sourcePath\setup"){
+            
             foreach($mnt in (get-childitem -Path "$sourcePath\setup" -Recurse | where-object {$_.Extension -eq '.mnt'})){
                 Write-log "Copying $mnt to $env:TMP\source-mnt."
                 $warn.Text = "Copying $mnt to $env:TMP\source-mnt."
                 Copy-Item -Path $mnt.FullName -Destination "$env:TMP\source-mnt";
             }
+
+        }else{
+            $warn.ForeColor = 'red'
+            $warn.Text = "Data Source does not exist."
+            Write-log "$sourcePath\setup does not exist."
+        }
             
             #is this a UAT Machine? if so copy over the UAT Data.
-            if($TRUE -eq $objTypeCheckboxUATload.Checked){
+            if(($TRUE -eq $objTypeCheckboxUATload.Checked) -and (Test-Path -Path "$sourcePath\uat")){
                 foreach($mnt in (get-childitem -Path "$sourcePath\uat" -Recurse | where-object {$_.Extension -eq '.mnt'})){
                     Write-log "Copying $mnt to $env:TMP\source-mnt."
                     $warn.Text = "Copying $mnt to $env:TMP\source-mnt."
                     Copy-Item -Path $mnt.FullName -Destination "$env:TMP\source-mnt";
                 }
+            }else{
+                
             }
-
 }
 
 # Change the data specific to store.
@@ -257,24 +266,22 @@ Function Invoke-DataLoad {
 
 # OnClick button process.
 Function Invoke-UIProcess {
-
+    $testing = $true
     if($null -eq $textBox.Text -or $textbox.Text -eq ""){
         [System.Windows.MessageBox]::Show('Error, Store Number is Empty.','Error')
     }elseif($textBox.Text -notmatch '^\d+$'){
         [System.Windows.MessageBox]::Show('Error, Store Number is not a number.','Error')
     }elseif($textBox.Text.Length -gt '3'){
         [System.Windows.MessageBox]::Show('Error, Store Number longer than expected.','Error')
-    }elseif((Test-Path -Path "C:\xstore\download") -ne $true){
+    }elseif((Test-Path -Path "C:\xstore\download") -ne $true -and $testing -eq $false){
         [System.Windows.MessageBox]::Show('Error, C:\xstore\download does not exist.','Error')
     }else{
-
-        $sourcePath = $textBoxSource.Text
+        $global:sourcePath = $textBoxSource.Text
         $StoreNumber = $textBox.Text
         $StoreNumber = $StoreNumber.Trim()
-
-        Get-LatestStoreData
-        Invoke-DataCustomisation
-        Invoke-DataLoad
+            Get-LatestStoreData
+            Invoke-DataCustomisation
+            Invoke-DataLoad
     }
 }
 
