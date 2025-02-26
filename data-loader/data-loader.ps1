@@ -2,7 +2,7 @@
 Set-Location $PSScriptRoot
 
 # Quick way to obvescate the path for github
-$environment = (get-content .\dl.env); $env = $null;
+$environment = (get-content .\.env); $env = $null;
 foreach($line in $environment){
     $env += @(
         [pscustomobject]@{itm= $line.split('=')[0];val=$line.split('=')[1] }

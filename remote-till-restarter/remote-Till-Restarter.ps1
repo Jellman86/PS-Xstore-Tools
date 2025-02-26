@@ -1,6 +1,6 @@
 param (
-    [string[]]$ComputersToRestart = @("99-reg-02"), #List of computers to run the script on, can be more than one by adding ,"comp-name","comp-name2" etc.
-    [string]$RestartMXatEnd = "yes", # Do you want to reboot the MX(s) listed at the end of the process?
+    [string[]]$ComputersToRestart = @("DENBYFS-REG-05"), #List of computers to run the script on, can be more than one by adding ,"comp-name","comp-name2" etc.
+    [string]$RestartMXatEnd = "no", # Do you want to reboot the MX(s) listed at the end of the process?
     [string]$RestartMachines = "yes", # Do you want to reboot the machine?
     [string]$RestartXstoreIfNoReboot = "No", # Do you want to restart the xstore software if no reboot is requested?
     [string]$ComputerShutdown = "no" # If your not rebooting the machine do you want to shut it down?
@@ -10,7 +10,7 @@ param (
 $neededModules = @("PSMeraki"); # Modules needed for the script.
 
 # Quick way to obvescate sensitive info for github.
-$environment = (get-content .\rs.env); $env = $null;
+$environment = (get-content .\.env); $env = $null;
 foreach($line in $environment){
     $env += @(
         [pscustomobject]@{itm=$line.split('=')[0];val=$line.split('=')[1] }
