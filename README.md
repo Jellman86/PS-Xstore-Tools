@@ -1,2 +1,2 @@
 # PS-Xstore-Tools
- A Collection of administrative xStore tools written in powdershell. 
+ A Collection of administrative xStore scripts written in PowerShell. 
