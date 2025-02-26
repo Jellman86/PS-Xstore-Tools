@@ -1,5 +1,5 @@
 param (
-    [string[]]$ComputersToRestart = @("GLOUCES-REG-02"), #List of computers to run the script on, can be more than one by adding ,"comp-name","comp-name2" etc.
+    [string[]]$ComputersToRestart = @(""), #List of computers to run the script on, can be more than one by adding ,"comp-name","comp-name2" etc.
     [string]$RestartMXatEnd = "yes", # Do you want to reboot the MX(s) listed at the end of the process?
     [string]$RestartMachines = "yes", # Do you want to reboot the machine?
     [string]$RestartXstoreIfNoReboot = "No", # Do you want to restart the xstore software if no reboot is requested?
