@@ -35,6 +35,8 @@ foreach ($machineDNSName in $listofStoreMachines) {
         Invoke-Command -ComputerName $machineDNSName -ScriptBlock {
             param($scriptConfiguration, $configFilePath)
 
+            write-host "===> Process Starting On $env:computername for $using:machineDNSName <===" -BackgroundColor White -ForegroundColor Black
+
             # Function to backup the configuration file
             function backup-ConfigFile {
                 param(
@@ -59,6 +61,81 @@ foreach ($machineDNSName in $listofStoreMachines) {
                     exit 1;
                 }
             }
+
+            # Function to restart xStore
+            function invoke-xstoreStackExit {
+                #Get all the Anchors
+                write-host "Finding Anchor Files";
+                Try{
+                    $xstoreAnchors = get-childitem -Path @("c:\xstore\tmp","c:\environment\tmp","c:\xstore-mobile\tmp","c:\eftlink\tmp") | Where-Object {$_.Extension -eq ".anchor"} -ea 0;
+                }catch{
+                    Write-Host "Warn: $_ Path not available, if this not a server and the path is mobile, this is fine!" -ForegroundColor White -BackgroundColor Red
+                    return
+                }
+
+                #Delete xStore anchor files
+                ForEach ($anchor in $xstoreAnchors){
+                    if (Test-Path $anchor.FullName){
+                        $anchorPath = $anchor.FullName
+                        Remove-Item $anchor.FullName -Force
+                        "$anchorPath has been deleted on $env:computername."
+                    }else{
+                        "$anchorPath doesn't exist."
+                    }
+                }
+                
+                "Xstore should close within 15 seconds"
+                Start-Sleep -Seconds 15
+            }
+
+            # Function to start xStore using the task scheduler.
+            function invoke-xstoreStartup {
+
+                Start-ScheduledTask -TaskPath "\Denby\" "denbyLaunchXstoreAtLogon"
+                "xStore has been relaunced on $env:computername."
+
+            }
+
+            # Function to check if the script operation prerequisites are met
+            function invoke-prerequisiteCheck {
+
+                $existanceCheckFiles = @("c:\xstore\configure.bat","c:\xstore\baseconfigure.bat","c:\environment\configure.bat")
+                #Check if files exist
+                foreach ($file in $existanceCheckFiles){
+                    if(Test-Path -Path $file){
+                        Write-Host "File $file exists."
+                    }else{
+                        Write-Host "File $file does not exist."
+                        exit 1;
+                    }
+                }
+
+                #check if scheduled task exists
+                if(Get-ScheduledTask -TaskPath "\Denby\" "denbyLaunchXstoreAtLogon"){
+                    Write-Host "Scheduled Task exists."
+                }else{
+                    Write-Host "Scheduled Task to launch xstore does not exist."
+                    exit 1;
+                }
+            }
+            
+            # Function to run configuration scripts
+            function invoke-configChangePropergation {
+                "Running xenvironments configuration scripts."
+                $configScripts = @("c:\xstore\configure.bat","c:\xstore\baseconfigure.bat","c:\environment\configure.bat")
+                Foreach($script in $configScripts){
+                    Start-Sleep -Seconds 15
+                    if(test-path -Path $script){
+                        "$script has been found, running."
+                        Start-Process "cmd.exe" -ArgumentList "/c $script" -Wait
+                    }else{
+                        "WARN - $script cannot be found."
+                    }
+                }
+            }
+
+            # Invoke the prerequisite check
+            invoke-prerequisiteCheck;
 
             # Read the base properties file
             $basePropFile = Get-Content -Path $configFilePath;
@@ -113,6 +190,12 @@ foreach ($machineDNSName in $listofStoreMachines) {
             }
             # Write the updated properties back to the file
             $basePropFile | Set-Content -Path $configFilePath;
+
+            #Propagate the changes using inbuilt xstore tools and then restart xstore.
+            invoke-xstoreStackExit;
+            invoke-configChangePropergation;
+            invoke-xstoreStartup;
+
         } -ArgumentList $scriptConfiguration, $configFilePath
     } -ArgumentList $machineDNSName, $scriptConfiguration, $configFilePath
 
