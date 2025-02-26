@@ -45,10 +45,9 @@ invoke-command -ComputerName "dev1-reg-02" -ScriptBlock {
     }
     
     $basePropFile = get-content -Path $using:configFilePath;
-    #backup-ConfigFile -configFilePath $using:configFilePath;
-
+    backup-ConfigFile -configFilePath $using:configFilePath;
+    $ln = 0;
     foreach($bpfLine in $basePropFile){
-        $ln++
         switch -regex ($bpfLine) {
             "dtv.email.host*" { 
                 $bpfLine + " -- line number: "+ $ln
@@ -91,8 +90,8 @@ invoke-command -ComputerName "dev1-reg-02" -ScriptBlock {
                 $basePropFile[$ln] = $bpfLine;
             }
         }
-
-        $basePropFile
+        $ln++;
     }
+    $basePropFile | Set-Content -Path $using:configFilePath;
 }
  
