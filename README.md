@@ -1,3 +1,3 @@
 # PS-Xstore-Tools
 
- A Collection of administrative xStore scripts written in PowerShell.
+ A collection of administrative Oracle xStore scripts written in PowerShell. Tested against Oracle xStore v20.
