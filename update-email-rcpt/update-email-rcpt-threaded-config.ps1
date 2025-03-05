@@ -175,16 +175,16 @@ foreach ($machineDNSName in $listofStoreMachines) {
                         $bpfLine = "dtv.email.receipt.from=" + ($scriptConfiguration | Where-Object {$_.Property -eq "email.user.name"}).value;
                         $basePropFile[$ln] = $bpfLine;
                     }
-                    "dtv.email.user*" {
-                        $bpfLine + " -- line number: " + $ln
-                        $bpfLine = "dtv.email.user=" + ($scriptConfiguration | Where-Object {$_.Property -eq "email.user.name"}).value;
-                        $basePropFile[$ln] = $bpfLine;
-                    }
-                    "dtv.email.password*" {
-                        $bpfLine + " -- line number: " + $ln
-                        $bpfLine = "dtv.email.password=" + ($scriptConfiguration | Where-Object {$_.Property -eq "email.user.password"}).value;
-                        $basePropFile[$ln] = $bpfLine;
-                    }
+                    #"dtv.email.user*" {
+                    #    $bpfLine + " -- line number: " + $ln
+                    #    $bpfLine = "dtv.email.user=" + ($scriptConfiguration | Where-Object {$_.Property -eq "email.user.name"}).value;
+                    #    $basePropFile[$ln] = $bpfLine;
+                    #}
+                    #"dtv.email.password*" {
+                    #    $bpfLine + " -- line number: " + $ln
+                    #    $bpfLine = "dtv.email.password=" + ($scriptConfiguration | Where-Object {$_.Property -eq "email.user.password"}).value;
+                    #    $basePropFile[$ln] = $bpfLine;
+                    #}
                 }
                 $ln++;
             }
