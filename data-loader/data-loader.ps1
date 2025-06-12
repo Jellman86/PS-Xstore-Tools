@@ -2,7 +2,7 @@
 Set-Location $PSScriptRoot
 
 # Quick way to obvescate the path for github
-$environment = (get-content .\.env); $env = $null;
+$environment = (get-content .\dataloader.env); $env = $null;
 foreach($line in $environment){
     $env += @(
         [pscustomobject]@{itm= $line.split('=')[0];val=$line.split('=')[1] }
@@ -10,6 +10,7 @@ foreach($line in $environment){
 }
 
 $sourcePath = ($env | Where-Object {$_.itm -ieq "mntPath"}).val;
+$storeFolders = ($env | Where-Object {$_.itm -ieq "storeFolders"}).val;
 
 Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName PresentationCore
@@ -88,13 +89,21 @@ $datasource.Text = 'Data Source Path:'
 
 # Checkbox for UAT Data Load
 $objTypeCheckboxUATload = New-Object System.Windows.Forms.Checkbox 
-$objTypeCheckboxUATload.Location = New-Object System.Drawing.Size(335,45) 
+$objTypeCheckboxUATload.Location = New-Object System.Drawing.Size(350,45) 
 $objTypeCheckboxUATload.Size = New-Object System.Drawing.Size(200,20)
 $objTypeCheckboxUATload.Text = "UAT Store?"
 $objTypeCheckboxUATload.TabIndex = 5
 
+# Load Store Data Checkbox
+$objTypeCheckboxStoreData = New-Object System.Windows.Forms.Checkbox 
+$objTypeCheckboxStoreData.Location = New-Object System.Drawing.Size(200,45) 
+$objTypeCheckboxStoreData.Size = New-Object System.Drawing.Size(150,20)
+$objTypeCheckboxStoreData.Text = "Load Store Data?"
+$objTypeCheckboxStoreData.TabIndex = 5
+
 # Add all controls to main form.
 $form.Controls.Add($warn)
+$form.Controls.Add($objTypeCheckboxStoreData)
 $form.Controls.Add($objTypeCheckboxUATload)
 $form.Controls.Add($LDButton)
 $form.Controls.Add($label)
@@ -114,6 +123,12 @@ Function Write-Log {
     $loggingpath = '.\Data-Loader-Log.log';
     $logtime = (get-date -Format "HH:mm:ss-ddMMyy")
     Add-Content -Path $loggingpath -Value $logtime" | "$env:Computername" | "$msg
+}
+
+# Bool response if supplied value numeric. 
+FUNCTION Test-Numeric ($Value) {
+    $value = $value.trim()
+    return $Value -match "^[\d\.]+$"
 }
 
 # Get the Latest MNT Files
@@ -192,11 +207,42 @@ Function Invoke-DataCustomisation {
 # Load the data using the xstore process.
 Function Invoke-DataLoad {
         if(Test-Path -Path "C:\xstore\download"){
+
                 #Add Main MNTs
                 foreach($mnt in (Get-ChildItem -Path "$env:TMP\source-mnt" -Recurse | Where-Object {$_.Extension -ilike ".mnt"})){
                     $mntsToLoad += @(
                     [pscustomobject]@{LoadOrder=($mnt.Name).split('-')[0];Name=$mnt.Name;Path=$mnt.Fullname}
                     )
+                }
+
+                if($TRUE -eq $objTypeCheckboxStoreData.Checked){
+                    if(Test-Path -Path $storeFolders -and $null -ne $storeNumber){
+                        $storeNumber = 62
+                        $warn.ForeColor = 'Black'
+                        $warn.Text = "Finding Store Data."
+                        #Find Correct Store Folder
+                        $storeFolder = (Get-ChildItem -Directory -Path $storeFolders | Where-Object {$_.Name -ilike "*$StoreNumber*"})
+                        #Add content of store folder to load list.
+                        foreach($mnt in (Get-ChildItem -Path $storeFolder.FullName -Recurse | Where-Object {$_.Extension -ilike ".mnt"})){
+                            if(Test-Numeric (($mnt.name).split("-")[0])){
+                                if([Int64](($mnt.name).split("-")[0]) -gt [int]'49'){
+                                    $ldorder = Get-Random -Minimum 50 -Maximum 99
+                                }else{
+                                    $ldorder = [int](($mnt.name).split("-")[0]) + 25
+                                }
+                            }else{
+                                $ldorder = Get-Random -Minimum 50 -Maximum 99
+                            }
+                            $mntsToLoad += @(
+                            [pscustomobject]@{LoadOrder=$ldorder;Name=$mnt.Name;Path=$mnt.Fullname}
+                            )
+                        }
+                    }else{
+                        $warn.ForeColor = 'red'
+                        $warn.Text = "Store Folder does not exist."
+                        Write-Log "ERROR - Store folder does not exist at $($storeFolder.FullName)."
+                        Start-Sleep -Seconds 2
+                    }
                 }
 
                 $mntsToLoad = $mntsToLoad | Sort-Object LoadOrder
@@ -290,5 +336,8 @@ Function Invoke-UIProcess {
 
 # If not called from the command line, show UI.
 $form.ShowDialog()
+
+#Clear all variables.
+Get-Variable -Exclude PWD,*Preference | Remove-Variable -EA 0
 
 exit 0

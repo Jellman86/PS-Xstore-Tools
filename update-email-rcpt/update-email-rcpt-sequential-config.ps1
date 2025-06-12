@@ -17,11 +17,12 @@ foreach ($config in $configFile) {
 
 # Declare configuration variables from config psObject
 $configFilePath = ($scriptConfiguration | Where-Object {$_.Property -eq "target.file.path"}).value
-[xml]$xstoreConfigData = Get-Content -Path ($scriptConfiguration | Where-Object {$_.Property -eq "retail.store.machine.list.path"}).value
+$menuConfigPath = ($scriptConfiguration | Where-Object {$_.Property -eq "target.file.path.menu"}).value
+#[xml]$xstoreConfigData = Get-Content -Path ($scriptConfiguration | Where-Object {$_.Property -eq "retail.store.machine.list.path"}).value
 #$listofStoreMachines = @($xstoreConfigData.stores.store.computer.name);
 
 # Temporary list of machines for testing
-$listofStoreMachines = @("dev1-reg-02", "dev1-srv-01");
+$listofStoreMachines = ("TRENTHAM-REG-02","TRENTHAM-SRV-01");
 
 foreach ($machineDNSName in $listofStoreMachines) {
 
@@ -29,7 +30,9 @@ foreach ($machineDNSName in $listofStoreMachines) {
     Invoke-Command -ComputerName $machineDNSName -ScriptBlock {
         param($using:scriptConfiguration, $using:configFilePath)
 
-        write-host "===> Process Starting On $env:computername for $using:machineDNSName <===" -BackgroundColor White -ForegroundColor Black
+        write-host " ";
+        write-host "===============================================> Process Starting On $env:computername for $using:machineDNSName <===============================================" -BackgroundColor White -ForegroundColor Black
+        write-host " ";
 
         # Function to backup the configuration file
         function backup-ConfigFile {
@@ -49,37 +52,12 @@ foreach ($machineDNSName in $listofStoreMachines) {
             $backupFileHash = (Get-FileHash -Path $backupFile).Hash;
 
             if ($originalHash -eq $backupFileHash) {
-                Write-Host "Backup file created successfully." -BackgroundColor White -ForegroundColor Green
+                Write-Host "Backup file created successfully ($configFilePath backed up to $backupFile)." -BackgroundColor White -ForegroundColor Green
             } else {
-                Write-Host "Backup file creation failed." -BackgroundColor White -ForegroundColor Red
+                Write-Host "Backup file creation failed for $configFilePath (EXIT 1)." -BackgroundColor White -ForegroundColor Red
                 exit 1;
             }
         }
-
-        # Function to backup the configuration file
-        function backup-ConfigFile {
-                param(
-                    [string]$configFilePath
-                )
-
-                # Get date string for backup file
-                $dateStringForBackup = Get-Date -Format "yyyy-MM-dd-HH-mm-ss";
-
-                # Create backup file
-                $backupFile = $configFilePath + ".$dateStringForBackup.bak"
-                Copy-Item -Path $configFilePath -Destination $backupFile
-
-                # Get file hashes for comparison
-                $originalHash = (Get-FileHash -Path $configFilePath).Hash;
-                $backupFileHash = (Get-FileHash -Path $backupFile).Hash;
-
-                if ($originalHash -eq $backupFileHash) {
-                    Write-Host "Backup file created successfully." -BackgroundColor White -ForegroundColor Green
-                } else {
-                    Write-Host "Backup file creation failed." -BackgroundColor White -ForegroundColor Red
-                    exit 1;
-                }
-            }
 
         # Function to restart xStore
         function invoke-xstoreStackExit {
@@ -155,12 +133,13 @@ foreach ($machineDNSName in $listofStoreMachines) {
 
         # Invoke the prerequisite check
         invoke-prerequisiteCheck;
-
+        # Backup the base-xstore config file
+        backup-ConfigFile -configFilePath $using:configFilePath;
         # Read the base properties file
         $basePropFile = Get-Content -Path $using:configFilePath;
-        backup-ConfigFile -configFilePath $using:configFilePath;
 
-        # Update the properties in the file
+        # Update the properties in base prop file
+        
         $ln = 0;
         foreach ($bpfLine in $basePropFile) {
             switch -regex ($bpfLine) {
@@ -209,6 +188,20 @@ foreach ($machineDNSName in $listofStoreMachines) {
         }
         # Write the updated properties back to the file
         $basePropFile | Set-Content -Path $using:configFilePath;
+
+        # Update the properties in the xenv menu file.
+
+        # Backup the xenv menu config file
+        backup-ConfigFile -configFilePath $using:menuConfigPath;
+        # Read the base properties file
+        $menuConfig = Get-Content -Path $using:menuConfigPath;
+        if($menuConfig -ilike "*$(($using:scriptConfiguration | Where-Object {$_.Property -eq "menu.old.url"}).value)*"){
+            "Attempting to replace $(($using:scriptConfiguration | Where-Object {$_.Property -eq "menu.old.url"}).value) with $(($using:scriptConfiguration | Where-Object {$_.Property -eq "menu.corrected.url"}).value) in the file $using:menuConfigPath."
+            $menuConfig = ($menuConfig).replace("$(($using:scriptConfiguration | Where-Object {$_.Property -eq "menu.old.url"}).value)","$(($using:scriptConfiguration | Where-Object {$_.Property -eq "menu.corrected.url"}).value)");
+            $menuConfig | Set-Content -Path $using:menuConfigPath;
+        }else{
+            "Old email url not present in $using:configFilePath, skipping."
+        }
 
         #Propagate the changes using inbuilt xstore tools and then restart xstore.
         invoke-xstoreStackExit;
